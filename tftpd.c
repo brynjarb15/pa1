@@ -7,7 +7,7 @@
 
 int main (int argc, char *argv[])
 {
-	int sockfd;
+    int sockfd;
     struct sockaddr_in server, client;
     char message[512];
 
