@@ -32,7 +32,7 @@ void sendFile (int sockfd, struct sockaddr_in client, socklen_t len, FILE* file,
 */
 int main (int argc, char *argv[])
 {
-    	
+    typedef enum { false, true } bool;    	
     printf("starting \n");
     int sockfd;
     struct sockaddr_in server, client;
@@ -63,10 +63,15 @@ int main (int argc, char *argv[])
         ssize_t n = recvfrom(sockfd, message, sizeof(message) - 1,
                              0, (struct sockaddr *) &client, &len);
  	unsigned char* address = (unsigned char *)&client.sin_addr.s_addr;
-	printf("client stuff: %d\n", address[0]);
-
+	//printf("client stuff: %d\n", address[0]);
+	
 	//nr 1 and 2 are the opcode
 	int opcode = message[1];
+	if( opcode != 1) {
+		printf("This is not a RRQ code \n");
+		break;
+		//TODO: what to do if not a RRQ packet
+	}
 	printf("opcode: %d \n", opcode);
 	char* fileName = 2 + message;
        	printf("FileName: %s\n", fileName);
@@ -76,35 +81,69 @@ int main (int argc, char *argv[])
 	message[n] = '\0';
        	fprintf(stdout, "Received:\n%s\n", message);
         fflush(stdout);
-		
-        // convert message to upper case.
-        //for (int i = 0; i < n; ++i) {
-        //    message[i] = toupper(message[i]);
-        //}
-	//printf("message: %s \n", message);
 	
 	
 	char* pathToFile = "data/example_data2";
 	FILE * file;
 	file = fopen(pathToFile, "r");
+	if (file == NULL) {
+		//TODO: ...
+	}
+	unsigned short  currentBlockNumber = 1;
+	unsigned short  ackBlockNumber;
+	bool ttt = false;
 	for(;;) {
 		char messageToSend[512];
 		memset(messageToSend, 0, sizeof messageToSend);
 		memset(message, 0, sizeof message);
 		messageToSend[0] = 0;
-        	messageToSend[1] = 3;
-        	messageToSend[2] = 0;
-        	messageToSend[3] = 1;
+        	messageToSend[1] = 3;	 
+        	messageToSend[2] = currentBlockNumber >> 8;		//TODO: skoða með að breyta þessu
+        	messageToSend[3] = currentBlockNumber;
 		int fileSize = fread(messageToSend + 4, 1, 512, file);
-		
-		ssize_t returnCode = sendto(sockfd, messageToSend, fileSize + 4, 0, (struct sockaddr *)&client, len);
-		ssize_t ack_return_code = recvfrom(sockfd, &message, sizeof(message), 0, (struct sockaddr *)&client, &len);
-		printf("ackcode = %d \n", message[1]);
+		if(fileSize < 512) {
+			sendto(sockfd, messageToSend, fileSize + 4, 0, (struct sockaddr *)&client, len);
+			break;
+			//TODO: þetta er síðasta skilaboðið 
+			//Þurfum að hætta að senda gögn
+		}
+		bool sameAckBlockNumber = true;
+		while(sameAckBlockNumber) {
+			ssize_t returnCode = sendto(sockfd, messageToSend, fileSize + 4, 0, (struct sockaddr *)&client, len);
+			if(returnCode < 0 ) {
+				//TODO: 
+			}
+
+			ssize_t ack_return_code = recvfrom(sockfd, &message, sizeof(message), 0, (struct sockaddr *)&client, &len);
+			if(ack_return_code == 0) {
+				//TODO: no message
+			}
+			if(ack_return_code < 0) {
+				//TODO: ERROR
+			}
+			opcode = message[1];
+			ackBlockNumber = message[3];
+			printf("ackBlockNumber = %hu \n", ackBlockNumber);
+			printf("currentBlockNu = %hu \n", currentBlockNumber);
+			if(opcode == 4) { // 4 means that this is a ACK packet
+				currentBlockNumber++;
+				sameAckBlockNumber = false;
+				/*if (ackBlockNumber == currentBlockNumber) { // This should be true
+					currentBlockNumber++;
+					sameAckBlockNumber = falser
+				}
+				else {
+					ttt = true;
+					break;
+				}*/
+			}	
 		//sendto(sockfd, message, (size_t) n, 0,
         	//       (struct sockaddr *) &client, len);
-		printf("end of for loop \n");
 		//sendFile(sockfd, client, len, file, message);
+		}
+		
 	}
     }
 	
 }
+
