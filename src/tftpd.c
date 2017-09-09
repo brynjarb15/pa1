@@ -5,8 +5,34 @@
 #include <ctype.h>
 #include <stdio.h>
 
+/*
+void sendFile (int sockfd, struct sockaddr_in client, socklen_t len, FILE* file, char* message) {
+    printf("start of sendFile function \n");
+    //for(;;) {
+	char messageToSend[512];
+        memset(messageToSend, 0, sizeof(messageToSend));
+        //memset(message, 0, sizeof(message));
+        messageToSend[0] = 0;
+        messageToSend[1] = 3;
+        messageToSend[2] = 0;
+        messageToSend[3] = 1;
+        int fileSize = fread(messageToSend + 4, 1, 512, file);
+	printf("middle of for loop \n");
+        ssize_t returnCode = sendto(sockfd, messageToSend, fileSize + 4, 0, (struct sockaddr *)&client, len);
+	printf("after sendto \n");
+        ssize_t ack_return_code = recvfrom(sockfd, &message, sizeof(message), 0, (struct sockaddr *)&client, &len);
+        printf("after recvfrom \n");
+	//printf("ackcode = %d \n", message[1]);
+	//sendto(sockfd, message, (size_t) n, 0,
+        //       (struct sockaddr *) &client, len);
+        printf("end of for loop \n");
+    //}
+
+}
+*/
 int main (int argc, char *argv[])
-{	
+{
+    	
     printf("starting \n");
     int sockfd;
     struct sockaddr_in server, client;
@@ -36,8 +62,12 @@ int main (int argc, char *argv[])
 	
         ssize_t n = recvfrom(sockfd, message, sizeof(message) - 1,
                              0, (struct sockaddr *) &client, &len);
-	printf("len: %tu \n", len);
+ 	unsigned char* address = (unsigned char *)&client.sin_addr.s_addr;
+	printf("client stuff: %d\n", address[0]);
+
 	//nr 1 and 2 are the opcode
+	int opcode = message[1];
+	printf("opcode: %d \n", opcode);
 	char* fileName = 2 + message;
        	printf("FileName: %s\n", fileName);
 	int fileNameLength = strlen(fileName);
@@ -48,13 +78,33 @@ int main (int argc, char *argv[])
         fflush(stdout);
 		
         // convert message to upper case.
-        for (int i = 0; i < n; ++i) {
-            message[i] = toupper(message[i]);
-        }
-	printf("message: %s \n", message);
-        sendto(sockfd, message, (size_t) n, 0,
-               (struct sockaddr *) &client, len);
-	printf("end of for loop \n");
+        //for (int i = 0; i < n; ++i) {
+        //    message[i] = toupper(message[i]);
+        //}
+	//printf("message: %s \n", message);
+	
+	
+	char* pathToFile = "data/example_data2";
+	FILE * file;
+	file = fopen(pathToFile, "r");
+	for(;;) {
+		char messageToSend[512];
+		memset(messageToSend, 0, sizeof messageToSend);
+		memset(message, 0, sizeof message);
+		messageToSend[0] = 0;
+        	messageToSend[1] = 3;
+        	messageToSend[2] = 0;
+        	messageToSend[3] = 1;
+		int fileSize = fread(messageToSend + 4, 1, 512, file);
+		
+		ssize_t returnCode = sendto(sockfd, messageToSend, fileSize + 4, 0, (struct sockaddr *)&client, len);
+		ssize_t ack_return_code = recvfrom(sockfd, &message, sizeof(message), 0, (struct sockaddr *)&client, &len);
+		printf("ackcode = %d \n", message[1]);
+		//sendto(sockfd, message, (size_t) n, 0,
+        	//       (struct sockaddr *) &client, len);
+		printf("end of for loop \n");
+		//sendFile(sockfd, client, len, file, message);
+	}
     }
 	
 }
