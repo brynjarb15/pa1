@@ -1,1 +1,19 @@
-Update this.
+README
+
+The port number is taken in as argument and a socket is created and binded. When a packet arrives from client the first two bytes are checked(the opcode) to see if it is a RRQ, if it is a WRQ then someone is trying to upload a file and a error message is sent. 
+If the opcode is a RRQ, the filename is extracted and the mode. 
+If the mode is "mail" then it wont allow it and sends a error message.
+The path to file is constructed and open. If the file is null then a error message is sent, else a packet is constructed with the opcode, block number and the message. If the message in the packet is less than 512 bytes then this is the last packet to be sent. 
+If the block number from the ACK packet that we get back is the same as the block number that we sent, then we send the next packet. If not, then we senda the same packet that we sent before until we get an ACK packet with the same block number as we sent.
+
+
+
+Questions 8 and 10 in given assignment description
+
+8.
+The mode tells us what kind of transfer is happening. We handle netascii by checking the mode of the packet sent, if it reads netascii then we translate it into format by writing it into a file. 
+We don't handle octet mode but it should throw it into binary when it is sent and then returns it as it was. 
+We don't allow mail because the mail mode is absolete and should not be implemented or used. 
+
+10.
+Our server handles attempts of uploading files by checking if the opcode is equal to 2(WRQ). If it equals 2 then someone is trying to upload and we send a error message back.
